@@ -21,10 +21,12 @@ All times are UAE time (UTC+4).
 | D1 | Detect facade **materials**, 6 classes | Fits a two-day deadline and links to the Final Master's Project (value engineering) |
 | D2 | Collect images from **Wikimedia Commons** only for the published dataset | Every image carries a clear free license, so the dataset can be republished in a GitHub Release |
 | D3 | **Bounding boxes**, one box per continuous material area | The brief requires YOLOv8 detection; per-panel boxes would teach "panel shape" instead of "material" |
-| D4 | SAM masks allowed as an annotation shortcut | Roboflow converts masks to boxes on YOLOv8 export |
+| D4 | SAM masks allowed as an annotation shortcut; polygons converted to boxes **in the training notebook** | Roboflow's YOLOv8 export kept the polygons (see entry 8), so the conversion is done in code |
 | D5 | Keep the git repository **out of live Google Drive sync** where possible | Drive wrote `desktop.ini` files into `.git` and corrupted it |
 | D6 | Re-collect `cladding_panel` with a targeted search | The first batch contained almost no real cladding facades |
 | D7 | Final model is **YOLOv8s trained in Colab** | Brief requires a reproducible notebook; Roboflow-hosted runs are exploration only |
+| D8 | Dataset frozen as a **GitHub Release** with SHA256 | Course reproducibility standard: keyless download, verified file |
+| D9 | Drop boxes smaller than 4 px during training | About 3,500 boxes were SAM fragments, not real objects |
 
 ---
 
@@ -120,9 +122,10 @@ material area, or one box per panel?
   wrapping areas are split into 2–3 rectangles.
 
 **What actually happened.** Some images were annotated with SAM masks and
-others with hand-drawn boxes. On YOLOv8 export Roboflow converts every mask to
-its tightest box, so no relabelling was needed. Hand-drawn boxes can be looser
-than mask-derived ones, so a sample was flagged for re-checking.
+others with hand-drawn boxes. At the time it was assumed that Roboflow's
+YOLOv8 export converts masks to boxes. **That assumption turned out to be
+wrong** (see entry 8): the export kept the polygons, and the conversion is now
+done in the training notebook.
 
 **Reflection.** Materials are surfaces, not objects, so a box always includes
 some neighbouring material. This is a known limitation of using detection for
@@ -207,12 +210,88 @@ should be done for every class, not only `cladding_panel`.
 
 ---
 
-## 8. Next steps
+## 8. Dataset frozen and published — 27 Sep 2026, 16:52–17:05
 
-- [ ] Finish the `cladding_panel` re-collection and fill in the result in entry 7.
-- [ ] Top up weak classes to 40–60 images each, starting with `brick`.
-- [ ] Check class balance in Roboflow Health Check.
-- [ ] Generate a new dataset version: no Grayscale, resize 640, flip, ±15% brightness, small rotation.
-- [ ] Export as YOLOv8, compute SHA256, publish as a GitHub Release.
-- [ ] Train YOLOv8s in Colab (`epochs=50`, `imgsz=640`, `batch=16`) and fill in Run 03.
+**Action.** Finished annotation in Roboflow, generated a dataset version,
+exported it in YOLOv8 format, and published the zip as a GitHub Release.
+
+| Item | Value |
+|---|---|
+| Roboflow project | `omar-el-sayed-pzb69/facade-materials-3mrrt` |
+| Roboflow version | **4** (generated 2026-09-27 4:52pm) |
+| Release | tag `v1.0` |
+| File | `facade-materials-v3-yolov8.zip` (37,025,500 bytes) |
+| URL | https://github.com/OmarEAbdelaal/M4U3-CV-Facade-Materials/releases/download/v1.0/facade-materials-v3-yolov8.zip |
+| SHA256 | `134e41be8c310452bbe8ea33fd55a891c6e29ca863f3c9b8df3827f59bb951cd` |
+| Preprocessing | Auto-orient, resize 640×640 (stretch). No Grayscale. |
+| Augmentation | 2 versions per training image: 50% horizontal flip, rotation ±10°, brightness ±15% |
+| Images | 430 in total: 354 train (177 source × 2), 51 valid, 25 test |
+| Split of source images | 177 / 51 / 25 = **70 / 20 / 10** |
+
+Checked on 27 Sep: the URL downloads without any login and the SHA256 above
+matches the downloaded file.
+
+**Images and boxes per class** (after the label cleanup described below):
+
+| Class | Train images | Train boxes | Valid images | Valid boxes | Test images | Test boxes |
+|---|---|---|---|---|---|---|
+| brick | 142 | 1,985 | 16 | 323 | 8 | 88 |
+| cladding_panel | 58 | 220 | 12 | 55 | 4 | 17 |
+| exposed_concrete | 78 | 274 | 8 | 70 | 4 | 10 |
+| glass | 188 | 8,089 | 29 | 1,369 | 13 | 364 |
+| painted_render | 90 | 223 | 13 | 26 | 6 | 6 |
+| stone_cladding | 87 | 2,979 | 16 | 344 | 6 | 279 |
+
+**Problems found when the released zip was inspected**
+
+| Problem | What was found | Consequence | Resolution |
+|---|---|---|---|
+| P5 | Roboflow's YOLOv8 export **kept SAM annotations as polygons**. 105 label files are polygon-only and **181 mix polygons with plain boxes** | In a mixed file the YOLOv8 detection loader reads every line as a polygon, so the plain boxes become corrupted | Training notebook converts every polygon to its tightest box before training (11,963 polygons converted) |
+| P6 | **3,507 boxes under 4 px** wide or tall at 640 px, mostly on `glass` (1,342) and `stone_cladding` (1,816) | Fragments from SAM clicks, not real objects; they add noise | Dropped in the training notebook |
+| P7 | `glass` and `stone_cladding` were annotated **per pane / per stone** (about 43 and 34 boxes per image) instead of one box per continuous area (rule D3) | Thousands of small objects; these classes behave very differently from the others | Not relabelled for lack of time. Recorded as a known inconsistency and a first item for the next dataset version |
+| P8 | Strong imbalance: `glass` has 8,089 training boxes, `cladding_panel` 220 and `painted_render` 223 (only 26 validation boxes) | Metrics for the small classes are unstable | Recorded; top up small classes in the next version |
+| P9 | The file is named `v3` but contains Roboflow **version 4** | Naming confusion only; the content is fixed by the checksum | Documented here and in the README |
+| P10 | Split is 70/20/10, not the 80/20 in the brief | A test split exists in addition to validation | Kept: the training notebook uses the test split for an extra independent check |
+| P11 | Roboflow shows the dataset license as **CC BY 4.0** | If any source image is CC BY-SA, the dataset must be CC BY-SA 4.0 | _To do: check `sources.csv`; change the license if needed_ |
+
+**Correction.** Entry 5 assumed Roboflow's YOLOv8 export converts masks to
+boxes. P5 shows it does not. The earlier Roboflow training runs (entry 6) may
+also have been affected by mixed polygon/box labels.
+
+**Reflection.** Opening the exported zip and counting the labels took a few
+minutes and caught three problems that would have silently lowered the final
+scores. Always inspect the exported data, not only the tool's interface.
+
+---
+
+## 9. Training notebook — 27 Sep 2026, 17:15
+
+**Action.** Wrote `notebooks/02_training_eval.ipynb`, following the course's
+reproducibility standard.
+
+- Downloads the dataset from the GitHub Release with the course's keyless cell
+  and checks the SHA256.
+- Cleans labels (P5, P6) on the extracted copy only; the released zip is
+  unchanged.
+- Trains `yolov8s.pt` with `epochs=50`, `imgsz=640`, `batch=16`, `seed=0`.
+- Ultralytics pinned to **8.4.163**.
+- Writes the metrics table (overall and per class, validation and test),
+  curves, confusion matrices, 10 validation predictions, new-image predictions
+  and `run_info.json` (versions, GPU, time) to `/content/results/`.
+- `QUICK_RUN` option for a 5-epoch verification run when no GPU is available.
+
+**Check.** The whole notebook was run end to end in a CPU environment with 1
+epoch and 10% of the training images, to catch code errors. All cells
+completed. (Those smoke-test metrics are meaningless and are not reported.)
+
+---
+
+## 10. Next steps
+
+- [ ] Run `02_training_eval.ipynb` in Colab on a T4 GPU (Run 03) and fill in entry 6 and the Run 03 row.
+- [ ] Add 5 new-image URLs (not in the dataset) to `NEW_IMAGE_URLS`.
+- [ ] Attach `best.pt` to a GitHub Release and link it from the README.
 - [ ] Complete the false-positive / false-negative tables in `error_analysis.md`.
+- [ ] Check dataset license (P11).
+- [ ] Record the `cladding_panel` re-collection result in entry 7.
+- [ ] Next dataset version: one box per continuous area for `glass` and `stone_cladding` (P7), more `cladding_panel` and `painted_render` images (P8).
