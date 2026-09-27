@@ -325,22 +325,58 @@ reported.)
 | 3 | Public repo, dataset as a Release asset, zip not committed | Done: tag `v1.0`; `*.zip` is in `.gitignore` |
 | 4 | Primary keyless data cell used as given | Done in notebooks 01 and 02; only `DATA_URL` and `SHA256` changed |
 | 5 | Optional Roboflow cell: skip on Run all, no crash without a key, pinned version | Done in notebook 02 (cell 3b), version 4 |
-| 6 | README Dataset section: Universe link + version, classes and counts per split, preprocessing and augmentation, Release URL + SHA256, license | _To do_ |
+| 6 | README Dataset section: Universe link + version, classes and counts per split, preprocessing and augmentation, Release URL + SHA256, license | Done (README section 3); license label still to confirm (P11) |
 | 7 | "Open in Colab" badge; test with "Disconnect and delete runtime" → Run all | Badge in both notebooks. _To do: badge in README and the clean-runtime test in Colab_ |
 | — | No API key in any committed cell, output or git history | No key in the notebooks. _To confirm: no key was ever pushed_ |
 | — | Only images you have the rights to share; no client or project photos | Sources are Wikimedia Commons (free licenses). _To do: license check P11_ |
 
 ---
 
-## 10. Next steps
+## 10. Repository organisation, evidence and governance — 27 Sep 2026, 17:40
+
+**Actions**
+- Rewrote the root `README.md` in the order required by the brief: problem
+  and success criteria, classes, dataset (all items from the instructor's
+  point 6), reproduce steps with Colab badges, reproducibility checklist,
+  results, reproducibility proof, evidence, governance, structure, license.
+  Results that depend on Run 03 are marked _pending_.
+- Rewrote the four folder READMEs (`data/`, `docs/`, `notebooks/`,
+  `results/`); they still listed planned file names that were never used.
+- Added `docs/governance_checklist.md`: privacy, data minimisation,
+  limitations (screening aid, not certification), false-negative vs.
+  false-positive risk, licensing.
+- Replaced `LICENSE`: it was the unfilled Apache 2.0 template; now MIT
+  (2026, Omar Elsayed) with a scope note for dataset images (source licenses)
+  and weights (AGPL-3.0, because they are produced with Ultralytics).
+- Added 5 annotation examples to `results/evidence/annotations/`, one per
+  class except `brick` (shown in the baseline figure).
+- Removed 8 `desktop.ini` files that Google Drive had put into the
+  repository, and added `desktop.ini` and `*.pt` to `.gitignore`.
+
+**Found while preparing the annotation examples** (added to
+`error_analysis.md` as A4 and A5)
+- `stone_cladding` example: outlines appear to follow the roofs, and the
+  facade looks like render, which is a likely mislabel.
+- A `painted_render` example is a black-and-white historic photo.
+
+**Reflection.** Looking at the labels drawn on the images found two data
+problems that the label counts alone did not show. Visual review should be a
+standard step before every dataset version.
+
+---
+
+## 11. Next steps
 
 - [ ] Run `01_baseline_inference.ipynb` in Colab so the outputs are saved in the notebook.
 - [ ] Run `02_training_eval.ipynb` in Colab on a T4 GPU (Run 03) and fill in entry 6 and the Run 03 row.
 - [ ] Clean-runtime test: Runtime → Disconnect and delete runtime → Run all, from the Colab badge.
-- [ ] Write the README (Dataset section per requirement 6, Colab badges, results, reproducibility proof).
+- [x] Write the README (entry 10). _Fill in the Run 03 results, takeaways and reproducibility proof after training._
 - [ ] Add 5 new-image URLs (not in the dataset) to `NEW_IMAGE_URLS`.
 - [ ] Attach `best.pt` to a GitHub Release and link it from the README.
 - [ ] Complete the false-positive / false-negative tables in `error_analysis.md`.
-- [ ] Check dataset license (P11).
+- [ ] Check dataset license (P11) and update the Roboflow and Release notes.
+- [ ] Review `stone_cladding` labels for roofs (A4); blur faces and plates in the next dataset version.
+- [ ] Commit the source lists (`sources.txt`, `sources.csv`) to `data/` for attribution.
+- [ ] Build the PDF pack (6–8 slides, 2-page report) once Run 03 results exist.
 - [ ] Record the `cladding_panel` re-collection result in entry 7.
 - [ ] Next dataset version: one box per continuous area for `glass` and `stone_cladding` (P7), more `cladding_panel` and `painted_render` images (P8).

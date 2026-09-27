@@ -1,17 +1,19 @@
 # Data
 
-No raw images or labels are committed to this repository, and that is
-intentional (see the root README's Reproducibility Checklist).
+The dataset is **not** stored in this repository. The frozen version that
+all results depend on is a GitHub Release asset:
 
-The frozen dataset this project's results depend on is exported from
-Roboflow once and published as a **GitHub Release asset** (a zip file),
-fingerprinted with a SHA256 checksum. Notebooks download it at run time
-by URL, verify the checksum, and extract it — no Roboflow account or API
-key required to reproduce results.
+| Item | Value |
+|---|---|
+| Release | [`v1.0`](https://github.com/OmarEAbdelaal/M4U3-CV-Facade-Materials/releases/tag/v1.0) |
+| File | `facade-materials-v3-yolov8.zip` (content: Roboflow `facade-materials-3mrrt` version 4) |
+| SHA256 | `134e41be8c310452bbe8ea33fd55a891c6e29ca863f3c9b8df3827f59bb951cd` |
 
-This folder is reserved for small, non-binary reference files only
-(e.g., a copy of `data.yaml`, a class list). It does not and will not
-contain the dataset itself.
+The notebooks download it by URL, check the SHA256 and extract it. No
+Roboflow account or API key is needed. Full dataset details are in the root
+README, section 3.
 
-Not added yet — coming in a later step, once the dataset is exported and
-released.
+This folder is for small reference files only: the per-image source and
+license lists from the collection notebooks (`sources.txt`, `sources.csv`),
+used for attribution. Raw images, zips and label files are excluded by
+`.gitignore`.

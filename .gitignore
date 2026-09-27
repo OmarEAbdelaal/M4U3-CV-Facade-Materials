@@ -1,6 +1,12 @@
-﻿*.zip
+*.zip
 data/raw_images/
 data/*.jpg
 data/*.png
 __pycache__/
 .ipynb_checkpoints/
+
+# Google Drive / Windows folder metadata
+desktop.ini
+
+# Model weights go in a GitHub Release, not in git
+*.pt

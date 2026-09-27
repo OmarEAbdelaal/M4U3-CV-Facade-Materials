@@ -1,8 +1,10 @@
 # Docs
 
-- `01_problem.md` — AECO problem framing, use case, and success criteria
-- `02_class_definitions.md` — facade material class list and labeling rules
-- `03_error_analysis.md` — failure modes observed during evaluation
-- `04_governance.md` — licensing, image rights, and dataset governance notes
+| File | Contents |
+|---|---|
+| [`02_class_definitions.md`](02_class_definitions.md) | The 6 material classes, boundary cases and labelling rules |
+| [`error_analysis.md`](error_analysis.md) | Early-run errors, label problems in the dataset, false positives and false negatives of the final model, next data fixes |
+| [`governance_checklist.md`](governance_checklist.md) | Privacy, data minimisation, limitations (screening vs. certification), false-negative vs. false-positive risk, licensing |
+| [`project_log.md`](project_log.md) | Every action, problem and decision in date order, including failed runs |
 
-Not added yet — coming in later steps.
+The problem statement and success criteria are in the root README, section 1.

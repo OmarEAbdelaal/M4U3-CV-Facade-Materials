@@ -1,20 +1,14 @@
 # Notebooks
 
-This folder holds the Colab-ready notebooks for this project. Each one is
-self-contained: opening it via the "Open in Colab" badge in the root README
-and choosing Runtime → Run all should reproduce the results in `/results/`
-with no accounts, API keys, or local installs.
+All notebooks run in Google Colab with no accounts, API keys or local
+installs. Use the "Open in Colab" badges in the root README.
 
-Notebooks:
+| Notebook | Purpose | Needed to reproduce results? |
+|---|---|---|
+| `00_collect_images.ipynb` | First image collection from Wikimedia Commons, about 50 per class, with source and license log | No (documents where images came from) |
+| `00b_collect_cladding.ipynb` | Targeted re-collection for `cladding_panel` after the first batch was unusable; license filter, preview and cull, `sources.csv` | No (documents where images came from) |
+| `01_baseline_inference.ipynb` | Keyless dataset download; pretrained COCO YOLOv8s on 4 facade photos; shows it has no material classes | Yes (baseline) |
+| `02_training_eval.ipynb` | Keyless dataset download with SHA256 check; label cleanup; YOLOv8s training; metrics; curves; validation and new-image predictions; results package | Yes (main result) |
 
-- `00_collect_images.ipynb` — one-off data collection: pulls candidate
-  photos per class from Wikimedia Commons and writes `sources.csv`
-  (license + attribution per image). Not needed to reproduce results;
-  kept here to document where the raw images came from.
-- `01_baseline.ipynb` — environment setup, keyless dataset download
-  (from a GitHub Release), a quick look at the data, and baseline inference
-  with a pretrained YOLO model (sanity check before training).
-- `02_train_eval.ipynb` — full training run, validation metrics, curves,
-  and inference on both validation images and new/unseen images.
-
-`01` and `02` are not added yet — coming in a later step.
+Notebook 02 needs a GPU (Runtime → Change runtime type → T4 GPU). Without
+one, set `QUICK_RUN = True` in cell 2.
