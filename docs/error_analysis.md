@@ -22,7 +22,7 @@ missed material means a value-engineering substitution could go unflagged
 
 ## Observed in early runs (Runs 01–02)
 
-Source: `results/evidence/training_runs/`. Details in `training_log.md`.
+Source: `results/evidence/training_runs/`. Details in `project_log.md`, entry 6.
 
 | # | Run | Type | What happened | Likely cause |
 |---|---|---|---|---|
