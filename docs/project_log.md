@@ -264,9 +264,36 @@ scores. Always inspect the exported data, not only the tool's interface.
 
 ---
 
-## 9. Training notebook — 27 Sep 2026, 17:15
+## 9. Notebooks — 27 Sep 2026, 17:15–17:30
 
-**Action.** Wrote `notebooks/02_training_eval.ipynb`, following the course's
+### Notebook 01 — baseline (`notebooks/01_baseline_inference.ipynb`)
+
+**Question.** Does an off-the-shelf model already detect facade materials?
+
+**Method.** YOLOv8s pretrained on COCO (80 object classes), run at 25%
+confidence on one validation image each of `brick`, `glass`,
+`cladding_panel` and `stone_cladding`, taken from the released dataset.
+
+**Result** (run on 27 Sep; outputs in `results/baseline/`):
+
+| True material | What the pretrained model detected |
+|---|---|
+| brick | bicycle (0.88) |
+| glass | nothing |
+| cladding_panel | nothing |
+| stone_cladding | car (0.94), bird (0.25) |
+
+None of the 6 material classes exists in COCO, so the model can only report
+objects in front of the facade, never the surface itself.
+
+**Reflection.** Same lesson as Session 1: a generic model can be technically
+good and still not answer the business question. This justifies collecting
+and labelling our own data. The pretrained weights are still used as the
+starting point for training (transfer learning).
+
+### Notebook 02 — training and evaluation (`notebooks/02_training_eval.ipynb`)
+
+**Action.** Wrote the training notebook, following the course's
 reproducibility standard.
 
 - Downloads the dataset from the GitHub Release with the course's keyless cell
@@ -280,15 +307,37 @@ reproducibility standard.
   and `run_info.json` (versions, GPU, time) to `/content/results/`.
 - `QUICK_RUN` option for a 5-epoch verification run when no GPU is available.
 
-**Check.** The whole notebook was run end to end in a CPU environment with 1
-epoch and 10% of the training images, to catch code errors. All cells
-completed. (Those smoke-test metrics are meaningless and are not reported.)
+- Includes the optional Roboflow download cell from the course email: skipped
+  automatically when the keyless dataset is present, asks for a key instead of
+  crashing when none is set, and pinned to version 4.
+
+**Check.** Both notebooks were run end to end in a CPU environment. Notebook
+02 used 1 epoch and 10% of the training images, only to catch code errors;
+all cells completed. (Those smoke-test metrics are meaningless and are not
+reported.)
+
+### Compliance with the course reproducibility standard (instructor email)
+
+| # | Requirement | Status |
+|---|---|---|
+| 1 | Export the exact version trained on, file name shows the version | Done: Roboflow version 4. File is named `v3` (P9); format YOLOv8, which has the same label format as the YOLOv11 export named in the email |
+| 2 | SHA256 checksum | Done: `134e41be…51cd` |
+| 3 | Public repo, dataset as a Release asset, zip not committed | Done: tag `v1.0`; `*.zip` is in `.gitignore` |
+| 4 | Primary keyless data cell used as given | Done in notebooks 01 and 02; only `DATA_URL` and `SHA256` changed |
+| 5 | Optional Roboflow cell: skip on Run all, no crash without a key, pinned version | Done in notebook 02 (cell 3b), version 4 |
+| 6 | README Dataset section: Universe link + version, classes and counts per split, preprocessing and augmentation, Release URL + SHA256, license | _To do_ |
+| 7 | "Open in Colab" badge; test with "Disconnect and delete runtime" → Run all | Badge in both notebooks. _To do: badge in README and the clean-runtime test in Colab_ |
+| — | No API key in any committed cell, output or git history | No key in the notebooks. _To confirm: no key was ever pushed_ |
+| — | Only images you have the rights to share; no client or project photos | Sources are Wikimedia Commons (free licenses). _To do: license check P11_ |
 
 ---
 
 ## 10. Next steps
 
+- [ ] Run `01_baseline_inference.ipynb` in Colab so the outputs are saved in the notebook.
 - [ ] Run `02_training_eval.ipynb` in Colab on a T4 GPU (Run 03) and fill in entry 6 and the Run 03 row.
+- [ ] Clean-runtime test: Runtime → Disconnect and delete runtime → Run all, from the Colab badge.
+- [ ] Write the README (Dataset section per requirement 6, Colab badges, results, reproducibility proof).
 - [ ] Add 5 new-image URLs (not in the dataset) to `NEW_IMAGE_URLS`.
 - [ ] Attach `best.pt` to a GitHub Release and link it from the README.
 - [ ] Complete the false-positive / false-negative tables in `error_analysis.md`.

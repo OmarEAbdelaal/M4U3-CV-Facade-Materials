@@ -1,0 +1,5 @@
+image,true material,COCO detections,material detected
+brick_009_jpg.rf.4b0b3dfd15d1d,brick,bicycle (0.88),no
+glass_001_jpg.rf.1decf14cb5c2c,glass,nothing,no
+cladding_panel_001_jpg.rf.3443,cladding_panel,nothing,no
+stone_cladding_005_jpg.rf.4fc6,stone_cladding,"car (0.94), bird (0.25)",no
