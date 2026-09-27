@@ -1,0 +1,5 @@
+run,dataset,labels_scored_on,split,precision,recall,mAP50,mAP50-95
+run03_yolov8s,Release v1.0,as annotated (polygons to boxes; fragments removed),val,0.372,0.159,0.143,0.093
+run03_yolov8s,Release v1.0,as annotated (polygons to boxes; fragments removed),test,0.332,0.216,0.219,0.141
+run04_yolov8s_clean,Release v1.1,cleaned (one box per area),val,0.708,0.345,0.394,0.265
+run04_yolov8s_clean,Release v1.1,cleaned (one box per area),test,0.480,0.319,0.315,0.248

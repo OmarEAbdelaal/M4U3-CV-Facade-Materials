@@ -8,6 +8,7 @@ explain why the final setup looks the way it does.
 Related documents:
 - Class list and labelling rules: [`02_class_definitions.md`](02_class_definitions.md)
 - Error analysis required by the brief: [`error_analysis.md`](error_analysis.md)
+- SAM notes (what helped, what failed): [`sam_exploration_notes.md`](sam_exploration_notes.md)
 - Training-run screenshots: [`../results/evidence/training_runs/`](../results/evidence/training_runs/)
 
 All times are UAE time (UTC+4).
@@ -27,6 +28,9 @@ All times are UAE time (UTC+4).
 | D7 | Final model is **YOLOv8s trained in Colab** | Brief requires a reproducible notebook; Roboflow-hosted runs are exploration only |
 | D8 | Dataset frozen as a **GitHub Release** with SHA256 | Course reproducibility standard: keyless download, verified file |
 | D9 | Drop boxes smaller than 4 px during training | About 3,500 boxes were SAM fragments, not real objects |
+| D10 | Clean the labels in code into Release `v1.1` and train the final model on it | Label problems A1–A7 (entry 11–12) capped Run 03 at mAP@50 0.14 |
+| D11 | Dataset license **CC BY-SA 4.0** | 184 of 253 source images are CC BY-SA (entry 14) |
+| D12 | Report Run 04 honestly as below the recall target, and position the model as a screening aid | Recall 0.35 vs target 0.50 (entry 13) |
 
 ---
 
@@ -142,7 +146,7 @@ Metrics are Roboflow test-set values at a 50% confidence threshold.
 | 01 | RF-DETR NAS | `2026-09-27 5:08am` | 30.4% | 35.6% | 18.2% | 24.1% | Weak baseline |
 | 02 | YOLO26 Object Detection (Small) | `2026-09-27 12:50pm` | 0.1% | 0.7% | 1.5% | 1.0% | Failed to learn |
 | 03 | YOLOv8s, 50 epochs (Colab, notebook v1: labels cleaned, not merged) | `2026-09-27 4:52pm` (v4, Release `v1.0`) | 0.143 (test 0.219) | 0.372 (test 0.332) | 0.159 (test 0.216) | — | Below target; low recall. Scored on as-annotated labels |
-| 04 | YOLOv8s, 50 epochs (Colab), cleaned labels | Release `v1.1` (v4 cleaned) | _TBD_ | _TBD_ | _TBD_ | _TBD_ | See entry 12 |
+| 04 | YOLOv8s, 50 epochs (Colab), cleaned labels | Release `v1.1` (v4 cleaned) | 0.394 (test 0.315) | 0.708 (test 0.480) | 0.345 (test 0.319) | 0.46 | **Final model.** Precision target met, recall and mAP below target (entry 13) |
 
 ### Run 01 — RF-DETR NAS
 
@@ -202,8 +206,13 @@ buildings, details and non-facade images.
 - writes `sources.csv` (file, title, license, author, source page, query) for
   attribution.
 
-**Result.** _TBD — record how many images were downloaded, how many were
-deleted in the preview, and how many were uploaded to Roboflow._
+**Result.** 48 images were kept after the preview check and logged in
+[`data/sources_cladding_recollection.csv`](../data/sources_cladding_recollection.csv)
+(21 CC BY-SA 4.0, 13 CC0, 5 public domain, the rest CC BY / CC BY-SA). They
+replaced the first `cladding_panel` batch completely. 34 of them are in the
+released dataset (Release `v1.0`) and all 34 remain in `v1.1`. With 54
+training images (after augmentation) and 13 validation boxes, `cladding_panel`
+is still the smallest class, and Run 04 misses 77% of it (entry 13).
 
 **Reflection.** Keyword search is not enough for a visual class. Checking the
 downloaded images by eye before annotation catches bad data early; this
@@ -485,20 +494,83 @@ the counts alone would not have shown.
 
 ---
 
-## 13. Next steps
+## 13. Run 04: final model on Release v1.1 — 27 Sep 2026, about 21:15
+
+**Action.** Ran `02_training_eval.ipynb` in Colab (Tesla T4) from the README
+badge with Run all. Settings unchanged from Run 03: YOLOv8s, 50 epochs,
+batch 16, 640 px, seed 0. Only the dataset changed (Release `v1.1`).
+
+**Environment.** Python 3.13.15, torch 2.11.0+cu128, ultralytics 8.4.163,
+Tesla T4 (14,913 MiB). Training took 5.7 min (0.086 h).
+
+**Result**
+
+| Split | Precision | Recall | mAP@50 | mAP@50-95 |
+|---|---|---|---|---|
+| Validation | 0.708 | 0.345 | 0.394 | 0.265 |
+| Test | 0.480 | 0.319 | 0.315 | 0.248 |
+
+- Best class: `exposed_concrete` (validation mAP@50 0.628, test 0.783).
+- Weakest: `cladding_panel` (0.276), `glass` (0.294), `painted_render`
+  (0.310). `brick` drops to 0.082 on the 7-image test split.
+- Confusion matrix (validation, normalised): the background row shows the
+  share of each class that is missed: brick 0.55, cladding_panel 0.77,
+  exposed_concrete 0.45, glass 0.63, painted_render 0.56, stone_cladding
+  0.42. The background column shows 66% of the detections on unlabelled
+  areas are `glass`. `painted_render` is called `brick` in 12% of cases.
+
+**Against the targets (README section 1).** Precision 0.708 ≥ 0.50 met.
+Recall 0.345 and mAP@50 0.394 are below 0.50: not met.
+
+**Diagnosis**
+1. The model is conservative: it rarely fires wrongly but misses a lot. The
+   main cause is too few examples of the weak classes (13–22 validation
+   boxes each), after cleaning removed 24 images.
+2. Many "false positive" `glass` detections are real windows in partly
+   labelled images (problem A6): the answer key is incomplete, so part of
+   the error is in the labels.
+3. The test split is too small for stable per-class scores (the brick score
+   depends on 16 boxes in 7 images).
+
+**Decision (D12).** Keep Run 04 as the final model for this submission and
+report it as below target. Do not tune thresholds or retrain on the test set
+to reach 0.50: that would hide the real problem, which is data.
+The next dataset version is planned in `error_analysis.md`.
+
+**Reflection.** Cleaning the labels almost tripled mAP@50 with no change to
+the model. On a small, hand-labelled dataset, the answer key matters more
+than the architecture.
+
+---
+
+## 14. Completing the submission — 27 Sep 2026, 21:20 onwards
+
+| Item | What was done |
+|---|---|
+| Source and license lists | Collection logs committed to `data/`; `data/attribution.csv` built with one row per released image (253), marking the 24 removed in v1.1 |
+| Dataset license (P11) | Settled as **CC BY-SA 4.0**: 184 of 253 images are CC BY-SA. README, `data/README.md` and governance checklist updated |
+| New-image test set | 5 Wikimedia Commons photos not in the dataset, one per material except `painted_render` (brick, glass, exposed concrete, aluminium cladding, stone cladding), chosen from 32 candidates checked by eye; URLs in notebook 02 cell 2; licenses in `data/new_images.csv` |
+| SAM notes | `docs/sam_exploration_notes.md`, with counts measured from Release v1.0 |
+| Results | `results/comparison.csv` and `results/yolov8s_clean/metrics.csv` from Run 04 |
+| Weights | `best.pt` attached to GitHub Release `weights-v1`, linked from the README |
+| PDF pack | 7 slides and a 2-page report in `docs/pdf/`, linked from the README |
+
+---
+
+## 15. Next steps
 
 - [ ] Run `01_baseline_inference.ipynb` in Colab so the outputs are saved in the notebook.
 - [x] Run 03 (notebook v1) trained in Colab: validation mAP@50 0.143, recall 0.159 (README section 6).
-- [ ] Publish Release `v1.1` with `facade-materials-v4-clean-yolov8.zip`.
-- [ ] Run `02_training_eval.ipynb` in Colab on a T4 GPU (Run 04 on v1.1); fill in the README results table.
-- [ ] Clean-runtime test: Runtime → Disconnect and delete runtime → Run all, from the Colab badge.
-- [x] Write the README (entry 10). _Fill in the Run 04 results, takeaways and reproducibility proof after training._
-- [ ] Add 5 new-image URLs (not in the dataset) to `NEW_IMAGE_URLS`.
-- [ ] Attach `best.pt` to a GitHub Release and link it from the README.
-- [ ] Complete the false-positive / false-negative tables in `error_analysis.md`.
-- [ ] Check dataset license (P11) and update the Roboflow and Release notes.
+- [x] Publish Release `v1.1` with `facade-materials-v4-clean-yolov8.zip`.
+- [x] Run `02_training_eval.ipynb` in Colab on a T4 GPU (Run 04 on v1.1); fill in the README results table (entry 13).
+- [x] Run all from the Colab badge on a T4 (entry 13).
+- [x] Write the README (entry 10); Run 04 results, takeaways and reproducibility proof added (entry 14).
+- [x] Add 5 new-image URLs (not in the dataset) to `NEW_IMAGE_URLS` (entry 14).
+- [x] Attach `best.pt` to a GitHub Release (`weights-v1`) and link it from the README.
+- [x] Complete the false-positive / false-negative tables in `error_analysis.md`.
+- [x] Check dataset license (P11): CC BY-SA 4.0. ⬜ Change the license field on Roboflow Universe.
 - [ ] Review `stone_cladding` labels for roofs (A4); blur faces and plates in the next dataset version.
-- [ ] Commit the source lists (`sources.txt`, `sources.csv`) to `data/` for attribution.
-- [ ] Build the PDF pack (6–8 slides, 2-page report) once Run 04 results exist.
-- [ ] Record the `cladding_panel` re-collection result in entry 7.
+- [x] Commit the source lists to `data/` for attribution (`attribution.csv`, `sources_*.csv`).
+- [x] Build the PDF pack (7 slides, 2-page report) in `docs/pdf/`.
+- [x] Record the `cladding_panel` re-collection result in entry 7.
 - [ ] Next dataset version: relabel in Roboflow to the class rules (A3), starting with the 24 removed images (A6) and the `stone_cladding` roofs (A4); more `cladding_panel` and `painted_render` images (P8).

@@ -5,6 +5,14 @@ MAICEN · Module 4 · Unit 3 · Computer Vision
 A YOLOv8 object detector that finds six facade materials in building
 photos, built as a reproducible, documented prototype.
 
+**Submission pack:** [slides (PDF)](docs/pdf/M4U3_facade_materials_slides.pdf) ·
+[2-page report (PDF)](docs/pdf/M4U3_facade_materials_report.pdf) ·
+[trained weights `best.pt`](https://github.com/OmarEAbdelaal/M4U3-CV-Facade-Materials/releases/tag/weights-v1)
+
+**Result in one line:** after label cleaning, validation mAP@50 rose from
+0.143 to 0.394 and precision reached 0.71, but recall (0.35) is still below
+the 0.50 target: the model is reliable when it fires and misses too much.
+
 | Notebook | Open |
 |---|---|
 | 01 — Baseline: pretrained YOLOv8 on facade photos | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/OmarEAbdelaal/M4U3-CV-Facade-Materials/blob/main/notebooks/01_baseline_inference.ipynb) |
@@ -75,8 +83,8 @@ Common to both:
 | Split of source images | 70 / 20 / 10 (v1.0: 177 · 51 · 25; v1.1: 161 · 45 · 23); training images doubled by augmentation |
 | Preprocessing | Auto-orient; resize to 640 × 640 (stretch) |
 | Augmentation (train only) | 2 outputs per image: 50% horizontal flip, rotation ±10°, brightness ±15% |
-| Sources | Wikimedia Commons (CC0, public domain, CC BY, CC BY-SA) |
-| License | Currently labelled CC BY 4.0 on Roboflow; see the note below |
+| Sources | Wikimedia Commons (CC0, public domain, CC BY, CC BY-SA); per-image list in [`data/attribution.csv`](data/attribution.csv) |
+| License | **CC BY-SA 4.0** for the dataset as a whole; each image keeps its own license (see the note below) |
 
 The `v1.0` file name says `v3` but the content is Roboflow version 4; the
 SHA256 fixes the exact file.
@@ -117,9 +125,12 @@ Before/after: [`results/data_cleaning/cleaning_before_after.jpg`](results/data_c
 The test split is small (23 images; 3 for some classes), so per-class test
 scores are noisy. Validation (45 images) is the main reference.
 
-**License note.** Every image keeps its own source license. If any image is
-CC BY-SA, the dataset as a whole must be CC BY-SA 4.0; this is being checked
-(see [`docs/governance_checklist.md`](docs/governance_checklist.md)).
+**License note.** Every image keeps its own source license. 184 of the 253
+source images are CC BY-SA (2.0, 3.0 or 4.0), so the dataset as a whole is
+released as **CC BY-SA 4.0** (ShareAlike). The other 69 are CC0, public
+domain or CC BY, which are compatible. Authors, licenses and source pages for
+every image: [`data/attribution.csv`](data/attribution.csv); details in
+[`docs/governance_checklist.md`](docs/governance_checklist.md).
 
 ## 4. How to reproduce (Google Colab)
 
@@ -195,12 +206,36 @@ Notebook version 1: labels cleaned (polygons → boxes, fragments dropped) but
 Below the prototype target (mAP@50 ≥ 0.50), with recall especially low.
 This led to the label measurement in `docs/project_log.md` (entry 11).
 
-### Run 04: YOLOv8s, 50 epochs, cleaned labels (Release v1.1)
+### Run 04 (final model): YOLOv8s, 50 epochs, cleaned labels (Release v1.1)
 
 | Split | Precision | Recall | mAP@50 | mAP@50-95 |
 |---|---|---|---|---|
-| Validation | _pending_ | _pending_ | _pending_ | _pending_ |
-| Test | _pending_ | _pending_ | _pending_ | _pending_ |
+| Validation (45 images, 149 boxes) | **0.708** | **0.345** | **0.394** | **0.265** |
+| Test (23 images, 78 boxes) | 0.480 | 0.319 | 0.315 | 0.248 |
+| Target | ≥ 0.50 ✅ | ≥ 0.50 ❌ | ≥ 0.50 ❌ | — |
+
+Per class, validation (test in brackets):
+
+| Class | Precision | Recall | mAP@50 | mAP@50-95 |
+|---|---|---|---|---|
+| brick | 0.776 (0.198) | 0.318 (0.062) | 0.383 (0.082) | 0.180 (0.020) |
+| cladding_panel | 0.474 (0.603) | 0.231 (0.400) | 0.276 (0.465) | 0.221 (0.326) |
+| exposed_concrete | 0.853 (0.864) | 0.530 (0.750) | **0.628 (0.783)** | 0.485 (0.732) |
+| glass | 0.472 (0.391) | 0.265 (0.111) | 0.294 (0.155) | 0.203 (0.112) |
+| painted_render | 0.895 (0.409) | 0.250 (0.333) | 0.310 (0.168) | 0.238 (0.168) |
+| stone_cladding | 0.778 (0.416) | 0.474 (0.256) | 0.472 (0.239) | 0.262 (0.129) |
+
+Missed share per class (bottom row of the normalised validation confusion
+matrix: true objects predicted as background): brick 0.55,
+**cladding_panel 0.77**, exposed_concrete 0.45, **glass 0.63**,
+painted_render 0.56, stone_cladding 0.42.
+
+| Compared with Run 03 (validation) | Run 03 | Run 04 | Change |
+|---|---|---|---|
+| Precision | 0.372 | 0.708 | +0.336 |
+| Recall | 0.159 | 0.345 | +0.186 |
+| mAP@50 | 0.143 | 0.394 | +0.251 |
+| mAP@50-95 | 0.093 | 0.265 | +0.172 |
 
 Run 03 and Run 04 are not scored on the same labels (v1.0 vs. v1.1), so the
 change in scores mixes two effects: a better-trained model and an easier,
@@ -211,27 +246,50 @@ Per-class results: `results/yolov8s_clean/metrics.csv` · Curves and
 confusion matrices: `results/yolov8s_clean/curves/` · With Run 03:
 `results/comparison.csv`
 
-**Key takeaways:** _to be written after Run 04._
+**Key takeaways**
 
-**Weights:** `best.pt` — _link to be added (GitHub Release)._
+1. **Label quality was the biggest lever.** The same model, settings and
+   images went from mAP@50 0.143 to 0.394 once the labels followed the class
+   rules (one box per material area, no fragments, no stacked classes). Part
+   of that gain comes from an easier, consistent answer key, but the
+   prediction images show cleaner, area-level boxes as well.
+2. **Precise but not yet sensitive enough.** Precision 0.71 meets the
+   target; recall 0.35 does not. Between 42% and 77% of each class is missed,
+   worst for `cladding_panel` (13 validation boxes, fewest examples) and
+   `glass`. For a substitution screen this is the wrong way round, so the
+   next steps target recall: more `cladding_panel` and `painted_render`
+   images, relabelling partly labelled images, and a lower confidence
+   threshold in use.
+3. **Most false alarms are `glass` on unlabelled areas** (66% of detections
+   on background). Many are real windows in partly labelled images (problem
+   A6), so part of the "error" sits in the labels, not the model.
+   `exposed_concrete` is already usable (mAP@50 0.63 validation, 0.78 test);
+   `brick` collapses on the small test split (7 images), so per-class test
+   scores should be read with caution.
+
+**Weights:** [`best.pt`](https://github.com/OmarEAbdelaal/M4U3-CV-Facade-Materials/releases/download/weights-v1/best.pt)
+(GitHub Release [`weights-v1`](https://github.com/OmarEAbdelaal/M4U3-CV-Facade-Materials/releases/tag/weights-v1), 22.5 MB, AGPL-3.0).
 
 ## 7. Reproducibility proof
 
 | Item | Value |
 |---|---|
-| Last successful run | _pending (date and time)_ |
-| Hardware | _pending (from `results/run_info.json`)_ |
-| Training time | _pending_ |
-| Expected runtime | _pending_ |
-| Tested from a clean runtime | _pending_ (Disconnect and delete runtime → Run all) |
+| Last successful run | 27 Sep 2026, about 21:15 (UTC+4), Run 04 |
+| Hardware | Google Colab, NVIDIA Tesla T4 (15 GB) |
+| Software | Python 3.13.15, torch 2.11.0+cu128, ultralytics 8.4.163 |
+| Training time | 5.7 min (50 epochs, 0.086 h) |
+| Expected runtime | About 10 min for the whole notebook on a T4 (install, download, training, evaluation, predictions); about 20 min on CPU with `QUICK_RUN = True` |
+| Tested from a clean runtime | Yes: opened from the Colab badge, Runtime → Run all |
 
 ## 8. Evidence and error analysis
 
 | Evidence | Location |
 |---|---|
 | Annotation examples (5) | [`results/evidence/annotations/`](results/evidence/annotations/) |
-| Validation predictions (10) | `results/yolov8s_clean/evidence/val_predictions/` (after Run 04) |
-| New-image predictions (5) | `results/yolov8s_clean/evidence/new_predictions/` (after Run 04) |
+| Validation predictions (10) | [`results/yolov8s_clean/evidence/val_predictions/`](results/yolov8s_clean/evidence/val_predictions/) |
+| New-image predictions (5) | [`results/yolov8s_clean/evidence/new_predictions/`](results/yolov8s_clean/evidence/new_predictions/) (sources and licenses: [`data/new_images.csv`](data/new_images.csv)) |
+| Curves and confusion matrices | [`results/yolov8s_clean/curves/`](results/yolov8s_clean/curves/) |
+| SAM exploration notes (what helped, what failed) | [`docs/sam_exploration_notes.md`](docs/sam_exploration_notes.md) |
 | Label cleaning report | [`results/data_cleaning/`](results/data_cleaning/) |
 | Exploration-run screenshots | [`results/evidence/training_runs/`](results/evidence/training_runs/) |
 | Error analysis: 3 FP, 3 FN, next data fixes | [`docs/error_analysis.md`](docs/error_analysis.md) |
@@ -263,19 +321,22 @@ docs/
   02_class_definitions.md       classes and labelling rules
   error_analysis.md             model and data errors, next data fixes
   governance_checklist.md       privacy, limitations, risk, licensing
+  sam_exploration_notes.md      SAM as an annotation aid: what helped, what failed
   project_log.md                every action, problem and decision
+  pdf/                          slides (6-8) and 2-page report
 results/
   baseline/                     notebook 01 outputs
   data_cleaning/                label-cleaning report (counts, removed images, before/after)
   yolov8s_clean/                Run 04: metrics, curves, predictions
   evidence/                     annotations, predictions, exploration runs
-data/                           reference only; the dataset is a Release asset
+data/                           source and license lists; the dataset is a Release asset
 ```
 
 ## 11. License
 
 - **Code, notebooks and documentation:** MIT, see [`LICENSE`](LICENSE).
-- **Dataset images:** each keeps its source license (CC0, public domain,
-  CC BY or CC BY-SA).
+- **Dataset:** CC BY-SA 4.0 as a whole; each image keeps its source license
+  (CC0, public domain, CC BY or CC BY-SA), listed in
+  [`data/attribution.csv`](data/attribution.csv).
 - **Trained weights:** AGPL-3.0, because they are produced with Ultralytics
   YOLOv8 (AGPL-3.0).

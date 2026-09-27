@@ -1,0 +1,15 @@
+run,split,class,precision,recall,mAP50,mAP50-95
+yolov8s_clean,val,all,0.708,0.345,0.394,0.265
+yolov8s_clean,val,brick,0.776,0.318,0.383,0.180
+yolov8s_clean,val,cladding_panel,0.474,0.231,0.276,0.221
+yolov8s_clean,val,exposed_concrete,0.853,0.530,0.628,0.485
+yolov8s_clean,val,glass,0.472,0.265,0.294,0.203
+yolov8s_clean,val,painted_render,0.895,0.250,0.310,0.238
+yolov8s_clean,val,stone_cladding,0.778,0.474,0.472,0.262
+yolov8s_clean,test,all,0.480,0.319,0.315,0.248
+yolov8s_clean,test,brick,0.198,0.062,0.082,0.020
+yolov8s_clean,test,cladding_panel,0.603,0.400,0.465,0.326
+yolov8s_clean,test,exposed_concrete,0.864,0.750,0.783,0.732
+yolov8s_clean,test,glass,0.391,0.111,0.155,0.112
+yolov8s_clean,test,painted_render,0.409,0.333,0.168,0.168
+yolov8s_clean,test,stone_cladding,0.416,0.256,0.239,0.129
