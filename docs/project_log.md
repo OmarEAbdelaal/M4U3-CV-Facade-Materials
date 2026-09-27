@@ -141,7 +141,8 @@ Metrics are Roboflow test-set values at a 50% confidence threshold.
 |---|---|---|---|---|---|---|---|
 | 01 | RF-DETR NAS | `2026-09-27 5:08am` | 30.4% | 35.6% | 18.2% | 24.1% | Weak baseline |
 | 02 | YOLO26 Object Detection (Small) | `2026-09-27 12:50pm` | 0.1% | 0.7% | 1.5% | 1.0% | Failed to learn |
-| 03 | YOLOv8s (Colab) | _TBD_ | _TBD_ | _TBD_ | _TBD_ | _TBD_ | Final run for the assignment |
+| 03 | YOLOv8s, 50 epochs (Colab, notebook v1: labels cleaned, not merged) | `2026-09-27 4:52pm` (v4, Release `v1.0`) | 0.143 (test 0.219) | 0.372 (test 0.332) | 0.159 (test 0.216) | — | Below target; low recall. Scored on as-annotated labels |
+| 04 | YOLOv8s, 50 epochs (Colab), cleaned labels | Release `v1.1` (v4 cleaned) | _TBD_ | _TBD_ | _TBD_ | _TBD_ | See entry 12 |
 
 ### Run 01 — RF-DETR NAS
 
@@ -247,7 +248,7 @@ matches the downloaded file.
 | Problem | What was found | Consequence | Resolution |
 |---|---|---|---|
 | P5 | Roboflow's YOLOv8 export **kept SAM annotations as polygons**. 105 label files are polygon-only and **181 mix polygons with plain boxes** | In a mixed file the YOLOv8 detection loader reads every line as a polygon, so the plain boxes become corrupted | Training notebook converts every polygon to its tightest box before training (11,963 polygons converted) |
-| P6 | **3,507 boxes under 4 px** wide or tall at 640 px, mostly on `glass` (1,342) and `stone_cladding` (1,816) | Fragments from SAM clicks, not real objects; they add noise | Dropped in the training notebook |
+| P6 | **3,507 boxes under 4 px** wide or tall at 640 px, mostly on `glass` (1,342) and `stone_cladding` (1,816) | Fragments from SAM clicks, not real objects; they add noise | Dropped in the training notebook (the notebook counts 3,563, because it applies the size test before rounding coordinates) |
 | P7 | `glass` and `stone_cladding` were annotated **per pane / per stone** (about 43 and 34 boxes per image) instead of one box per continuous area (rule D3) | Thousands of small objects; these classes behave very differently from the others | Not relabelled for lack of time. Recorded as a known inconsistency and a first item for the next dataset version |
 | P8 | Strong imbalance: `glass` has 8,089 training boxes, `cladding_panel` 220 and `painted_render` 223 (only 26 validation boxes) | Metrics for the small classes are unstable | Recorded; top up small classes in the next version |
 | P9 | The file is named `v3` but contains Roboflow **version 4** | Naming confusion only; the content is fixed by the checksum | Documented here and in the README |
@@ -365,18 +366,139 @@ standard step before every dataset version.
 
 ---
 
-## 11. Next steps
+## 11. Label granularity: measured and a merge option added — 27 Sep 2026, 17:55–18:15
+
+**Question.** Which data problem, if fixed, would most improve the model?
+
+**Measurement** (254 source images, after polygon conversion and fragment
+removal):
+
+| Folder class | Images | Median share of image labelled | Images < 25% labelled | Images with no label of their own class | Median boxes per image |
+|---|---|---|---|---|---|
+| brick | 43 | 59% | 1 | 3 | 38 |
+| cladding_panel | 34 | 68% | 3 | 0 | 10 |
+| exposed_concrete | 44 | 78% | 9 | 4 | 3 |
+| glass | 42 | 57% | 3 | 0 | 101 |
+| painted_render | 39 | 39% | 13 | 14 | 6 |
+| stone_cladding | 50 | 58% | 2 | 3 | 76 |
+
+**Findings, largest first**
+1. **Inconsistent granularity (A3).** `glass`, `stone_cladding` and `brick`
+   were labelled per pane / per stone; the other classes per area. `glass`
+   alone is about 60% of all training boxes. The model is effectively asked
+   to learn two different tasks.
+2. **Missing labels (A6).** 14 of the 39 `painted_render` images have no
+   render label, and 31 images are less than a quarter labelled.
+3. **Wrong labels (A4).** Some `stone_cladding` labels are on roofs or on
+   surfaces that do not look like stone; some render boxes are nested inside
+   other render boxes.
+
+**Action.** Problem 1 can be fixed in code; 2 and 3 need relabelling. Added
+to `02_training_eval.ipynb`:
+- `MERGE_ELEMENTS` setting: same-class `glass`, `stone_cladding` and `brick`
+  boxes that touch or are closer than 1.5% of the image width are merged into
+  one box per connected area. Each merged box is the union of the original
+  boxes, so it never extends beyond them. Training boxes: glass 8,075 → 1,047,
+  stone 2,962 → 199, brick 1,980 → 382.
+- Each run builds its own working copy (`/content/work/<RUN_NAME>/`) and
+  writes to its own results folder, so two runs can be compared in one
+  session. Cell 12 shows them side by side.
+- **Validation and test labels are always merged**, so both runs are scored
+  against the same answer key, the one that follows the class-definition
+  rule. Without this, the two runs would be graded on different tasks and
+  their scores could not be compared.
+- Planned runs: Run 04 `yolov8s_merged` and Run 05 `yolov8s_asis`.
+  **Superseded by entry 12:** the cleaning was moved out of the training
+  notebook into a separate cleaned release, so these two runs were not made.
+
+**Problem found and fixed while testing.** The first version of the merge
+produced boxes with negative width for thin boxes touching the image edge
+(the padding was clipped at the border, then removed again). Rewritten to
+take each area's extent from its original boxes; checked on all training
+labels: 0 invalid boxes.
+
+**Check.** Both settings were run end to end on CPU (1 epoch, 10% of the
+training images): all 13 code cells completed for both runs, each run used
+its own training labels (2,341 vs. 13,730 boxes), and the comparison table
+was produced. The two smoke-test runs gave identical scores because 5 batches
+of 8 images are fewer than the 64 images YOLOv8 accumulates before its first
+weight update; the real run (354 images, batch 16) updates every 4 batches.
+
+**Reflection.** Measuring label coverage and boxes per image took minutes
+and pointed to the most likely cause of weak results. Rules written in the
+class definitions are only useful if the labels are checked against them.
+
+---
+
+## 12. Label cleaning: Release v1.1 — 27 Sep 2026, 19:50–20:05
+
+**Request.** Fix the wrong and stacked labels on the images by removing most
+of the small boxes, in the dataset itself rather than only at training time.
+
+**Measured first** (253 source images, after polygon conversion, fragment
+removal and per-area merging):
+- 29% of boxes cover less than 0.5% of the image; 45% less than 1%.
+- Boxes nested inside a larger box of the same class: 144 of 216
+  `exposed_concrete` boxes, and 7–37 per other class.
+- Two different classes on the same area (IoU > 0.7): 14 pairs in 13
+  images (21 label files, counting augmented copies).
+
+**Rules chosen** (`notebooks/01b_clean_dataset.ipynb`):
+
+| Step | Rule | Why this setting |
+|---|---|---|
+| 1 | Polygons → boxes | A1 |
+| 2 | Drop fragments under 4 px | A2 |
+| 3 | Merge same-class boxes that overlap or are within 0.5% of the image width, **all classes** | One box per area (A3) and no nested duplicates (A7). A 1.5% gap was tried first and joined separate windows and neighbouring buildings; 0% and 0.5% were compared visually and 0.5% kept windows separate while still joining curtain-wall panes |
+| 4 | Stacked classes (IoU > 0.7): keep the photo's own class, otherwise the larger box | A7 |
+| 5 | Drop boxes under 1% of the image area (about 64 × 64 px) | Compared 0.5%, 1% and 2%: 905, 701 and 552 boxes kept. 1% removes most of the small boxes as requested; the removal never takes away an image's only label of its own material |
+| 6 | Remove images with no label of their own material | 24 source images (14 `painted_render`, 4 `exposed_concrete`, 3 `brick`, 3 `stone_cladding`); their labels were already missing before cleaning (A6). Keeping them would teach the model that those walls are background |
+
+**Result**
+
+| | Images (train · valid · test) | Boxes (train · valid · test) |
+|---|---|---|
+| Release v1.0 | 354 · 51 · 25 | 13,730 · 2,179 · 756 |
+| Release v1.1 | 322 · 45 · 23 | 968 · 149 · 78 |
+
+- File `facade-materials-v4-clean-yolov8.zip`, 31,714,195 bytes, SHA256
+  `bdcf62ff01fd58892ee22dd07cf2b481fa1194d0946dd5f78c6b41dc04187164`.
+- Written deterministically; running the notebook twice gave the same SHA256.
+- Report in `results/data_cleaning/`.
+
+**Training notebook updated.** `02_training_eval.ipynb` now downloads
+Release `v1.1`; cell 4 only checks the labels; the per-run merge option from
+entry 11 is removed; cell 12 compares with Run 03. Tested end to end (1
+epoch, 10% of images, CPU): all 13 code cells completed.
+
+**Known limits**
+- Merging and the 1% rule enforce the rules mechanically. Wrong labels
+  (A4: roofs labelled as stone) and partly labelled images remain.
+- The test split is now 23 images (3 for some classes): per-class test
+  scores will be noisy.
+- Roboflow still holds the uncleaned version 4; v1.1 exists only as a
+  GitHub Release, documented and reproducible from v1.0.
+
+**Reflection.** Measuring before changing made each threshold defensible,
+and comparing gap sizes on real images caught an over-merging problem that
+the counts alone would not have shown.
+
+---
+
+## 13. Next steps
 
 - [ ] Run `01_baseline_inference.ipynb` in Colab so the outputs are saved in the notebook.
-- [ ] Run `02_training_eval.ipynb` in Colab on a T4 GPU (Run 03) and fill in entry 6 and the Run 03 row.
+- [x] Run 03 (notebook v1) trained in Colab: validation mAP@50 0.143, recall 0.159 (README section 6).
+- [ ] Publish Release `v1.1` with `facade-materials-v4-clean-yolov8.zip`.
+- [ ] Run `02_training_eval.ipynb` in Colab on a T4 GPU (Run 04 on v1.1); fill in the README results table.
 - [ ] Clean-runtime test: Runtime → Disconnect and delete runtime → Run all, from the Colab badge.
-- [x] Write the README (entry 10). _Fill in the Run 03 results, takeaways and reproducibility proof after training._
+- [x] Write the README (entry 10). _Fill in the Run 04 results, takeaways and reproducibility proof after training._
 - [ ] Add 5 new-image URLs (not in the dataset) to `NEW_IMAGE_URLS`.
 - [ ] Attach `best.pt` to a GitHub Release and link it from the README.
 - [ ] Complete the false-positive / false-negative tables in `error_analysis.md`.
 - [ ] Check dataset license (P11) and update the Roboflow and Release notes.
 - [ ] Review `stone_cladding` labels for roofs (A4); blur faces and plates in the next dataset version.
 - [ ] Commit the source lists (`sources.txt`, `sources.csv`) to `data/` for attribution.
-- [ ] Build the PDF pack (6–8 slides, 2-page report) once Run 03 results exist.
+- [ ] Build the PDF pack (6–8 slides, 2-page report) once Run 04 results exist.
 - [ ] Record the `cladding_panel` re-collection result in entry 7.
-- [ ] Next dataset version: one box per continuous area for `glass` and `stone_cladding` (P7), more `cladding_panel` and `painted_render` images (P8).
+- [ ] Next dataset version: relabel in Roboflow to the class rules (A3), starting with the 24 removed images (A6) and the `stone_cladding` roofs (A4); more `cladding_panel` and `painted_render` images (P8).

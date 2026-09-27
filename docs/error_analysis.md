@@ -2,7 +2,7 @@
 
 This document lists what the model gets wrong and why. The assignment asks
 for 3 false positives, 3 false negatives and 3 prioritized data improvements,
-taken from the final model (Run 03). Observations from the earlier runs are
+taken from the final model (Run 04, trained on the cleaned Release v1.1). Observations from the earlier runs are
 recorded below so the final analysis can show whether they were fixed.
 
 Error types used in this document:
@@ -41,18 +41,20 @@ data**, not the model, but they cause model errors.
 
 | # | Problem | Evidence | Effect on the model | Handled |
 |---|---|---|---|---|
-| A1 | SAM polygons and plain boxes mixed in the same label file (181 files) | Label files; example 2 vs. examples 1 and 3 | The YOLOv8 detection loader misreads the boxes in those files | Yes: converted to boxes in the training notebook |
-| A2 | About 3,500 boxes under 4 px, mostly SAM fragments | Label files; small outlines along the bottom of example 1 | Noise labels teach the model to fire on nothing | Yes: dropped in the training notebook |
-| A3 | `glass` and `stone_cladding` labelled per pane / per stone instead of one box per continuous area | Examples 2, 3 and 4 (each window pane is its own `glass` label) | These classes become many tiny objects, unlike the other classes | No: known inconsistency, fix in the next version |
+| A1 | SAM polygons and plain boxes mixed in the same label file (181 files) | Label files; example 2 vs. examples 1 and 3 | The YOLOv8 detection loader misreads the boxes in those files | Yes: Release v1.1 (notebook 01b, step 1) |
+| A2 | About 3,500 boxes under 4 px, mostly SAM fragments; plus about 2,250 more boxes under 1% of the image | Label files; small outlines along the bottom of example 1 | Noise labels teach the model to fire on nothing | Yes: Release v1.1 (steps 2 and 5) |
+| A3 | `glass`, `stone_cladding` and `brick` labelled per pane / per stone (median 101, 76 and 38 boxes per image) instead of one box per continuous area (3–10 for the other classes) | Examples 2, 3 and 4 (each window pane is its own `glass` label) | These classes become many tiny objects: `glass` alone is about 60% of all training boxes | Yes, in code: Release v1.1 merges touching same-class boxes into one per area for all classes (step 3). Relabelling in Roboflow remains the long-term fix |
 | A4 | Likely mislabel: in example 5, the purple `stone_cladding` outlines run along the **roofs**, and the facade itself looks like cream render | `annotation_05_stone_cladding.jpg` | Teaches the model that roof tiles are stone cladding: a likely source of false positives | No: to review in Roboflow |
 | A5 | Black-and-white source photo labelled `painted_render` (historic survey photo) | `annotation_04_painted_render.jpg` | Colour is one of the main cues for material; grey images blur the render / concrete boundary | No: remove or keep few, flag as hard case |
+| A6 | Missing labels: 14 of 39 `painted_render` images have no `painted_render` label, and 31 images across the dataset are less than 25% labelled | Label coverage check, 27 Sep | Unlabelled render walls teach the model that render is background; correct detections then count as false positives | Partly: the 24 images with no label of their own material are removed in v1.1 (`results/data_cleaning/removed_images.csv`); partly labelled images remain |
+| A7 | Nested duplicates and stacked labels: boxes inside larger boxes of the same class (144 of 216 `exposed_concrete` boxes), and two different classes on the same area (21 cases) | Label analysis, 27 Sep | Double-counted objects; contradictory targets for the same pixels | Yes: Release v1.1 (steps 3 and 4) |
 
 ---
 
-## Final model (Run 03) — to be filled in
+## Final model (Run 04, trained on Release v1.1) — to be filled in
 
 Take these from the validation and new-image predictions saved in
-`results/evidence/val_predictions/` and `results/evidence/new_predictions/`.
+`results/yolov8s_clean/evidence/val_predictions/` and `results/yolov8s_clean/evidence/new_predictions/`.
 For each one, link the screenshot.
 
 ### 3 false positives
@@ -79,10 +81,10 @@ say so here.
 
 ## 3 prioritized next data improvements
 
-Ordered by expected impact. Update after Run 03 if the final errors point
+Ordered by expected impact. Update after Run 04 if the final errors point
 somewhere else.
 
-1. **Relabel to one standard (fixes A3, A4, and part of E2).** One box per
+1. **Relabel to one standard (fixes A3, A4, A6 properly; v1.1 only enforces it in code).** Start with the 24 images in `results/data_cleaning/removed_images.csv`. One box per
    continuous material area for every class, including `glass` and
    `stone_cladding`; review every `stone_cladding` image for roofs or render
    labelled as stone; split L-shaped areas into 2–3 rectangles.

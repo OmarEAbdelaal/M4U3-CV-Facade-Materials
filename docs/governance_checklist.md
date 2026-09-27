@@ -70,7 +70,7 @@ alarms. A lower confidence threshold is the lever for this.
 | Code and notebooks in this repository | **MIT** | See [`LICENSE`](../LICENSE). |
 | Documentation (`docs/`, README) | MIT | Same file. |
 | Dataset images | **Each image keeps its own source license** (CC0, public domain, CC BY or CC BY-SA, from Wikimedia Commons) | Authors and licenses are listed per image in the collection logs (`sources.txt` / `sources.csv`). |
-| Dataset as a whole (GitHub Release `v1.0`, Roboflow Universe) | ⚠️ Currently labelled **CC BY 4.0** on Roboflow | If any image is CC BY-SA, the dataset must be released as **CC BY-SA 4.0** (ShareAlike). ⬜ Check the source lists and correct the label on Roboflow and in the Release notes. |
+| Dataset as a whole (GitHub Releases `v1.0` and `v1.1`, Roboflow Universe) | ⚠️ Currently labelled **CC BY 4.0** on Roboflow | If any image is CC BY-SA, the dataset must be released as **CC BY-SA 4.0** (ShareAlike). ⬜ Check the source lists and correct the label on Roboflow and in the Release notes. |
 | Ultralytics library (YOLOv8) | AGPL-3.0 | Used as a dependency, not redistributed. |
 | Trained weights (`best.pt`) | AGPL-3.0 | Ultralytics treats models trained with its library as covered by AGPL-3.0, so the weights are shared under AGPL-3.0, not MIT. Commercial use would need an Ultralytics Enterprise license. |
 
@@ -79,7 +79,7 @@ alarms. A lower confidence threshold is the lever for this.
 | Check | Status | Note |
 |---|---|---|
 | Source of every image recorded | ⚠️ | Collection notebooks log URL, license and author for every image. ⬜ Commit the source lists to `data/` so attribution is public. |
-| Dataset frozen and verifiable | ✅ | GitHub Release `v1.0`, SHA256 `134e41be8c310452bbe8ea33fd55a891c6e29ca863f3c9b8df3827f59bb951cd`. |
+| Dataset frozen and verifiable | ✅ | Release `v1.0` (Roboflow export), SHA256 `134e41be…51cd`; Release `v1.1` (cleaned by notebook 01b, reproducible byte for byte), SHA256 `bdcf62ff…4187164`. |
 | No API keys or secrets in the repository | ✅ | Notebooks download the dataset keylessly; no key appears in any cell. |
 | Human in the loop | ✅ by design | Output is a list of flags for review; nothing is approved or rejected automatically. |
 | Known labelling inconsistencies documented | ✅ | See `project_log.md` entry 8 and `error_analysis.md`. |

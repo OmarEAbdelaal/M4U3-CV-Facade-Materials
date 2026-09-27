@@ -1,0 +1,10 @@
+,before,before,before,after,after,after
+split,test,train,valid,test,train,valid
+class,,,,,,
+brick,88,1980,322,16,168,22
+cladding_panel,17,220,55,5,63,13
+exposed_concrete,10,272,70,4,94,11
+glass,362,8075,1365,36,434,68
+painted_render,6,221,26,3,77,16
+stone_cladding,273,2962,341,14,132,19
+total,756,13730,2179,78,968,149
