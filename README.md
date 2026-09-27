@@ -153,8 +153,8 @@ Details: [`docs/project_log.md`](docs/project_log.md) (entry 6).
 
 | Split | Precision | Recall | mAP@50 | mAP@50-95 |
 |---|---|---|---|---|
-| Validation | _pending_ | _pending_ | _pending_ | _pending_ |
-| Test | _pending_ | _pending_ | _pending_ | _pending_ |
+| Validation | 0.372 | 0.159 | 0.143 | 0.093 |
+| Test | 0.332 | 0.216 | 0.219 | 0.141 |
 
 Per-class results: `results/metrics.csv` · Curves and confusion matrices:
 `results/curves/`
